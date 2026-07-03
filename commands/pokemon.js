@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { readJsonFile, writeJsonFile } = require('../utils/github');
+const { readJsonFileOrCreate, writeJsonFile } = require('../utils/github');
 const { isAuthorized } = require('../utils/permissions');
 
 const PATH = 'data/pokemon.json';
@@ -51,7 +51,7 @@ module.exports = {
     }
     await interaction.deferReply();
     const sub = interaction.options.getSubcommand();
-    const { data: mons, sha } = await readJsonFile(PATH);
+    const { data: mons, sha } = await readJsonFileOrCreate(PATH);
 
     if (sub === 'add') {
       const nom = interaction.options.getString('nom');
