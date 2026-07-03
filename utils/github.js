@@ -47,7 +47,7 @@ async function readJsonFileOrCreate(path) {
     return await readJsonFile(path);
   } catch (err) {
     if (err.status === 404) {
-      return { data: [], sha: null };
+      return { data: [], sha: undefined };
     }
     throw err;
   }
