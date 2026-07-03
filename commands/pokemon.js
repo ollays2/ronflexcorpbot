@@ -12,13 +12,21 @@ module.exports = {
       .setName('add')
       .setDescription('Ajouter un Pokémon à la Pension')
       .addStringOption(o => o.setName('nom').setDescription('Nom du Pokémon').setRequired(true))
+      .addIntegerOption(o => o.setName('dex').setDescription('Numéro du Pokédex').setRequired(true))
       .addStringOption(o => o.setName('type1').setDescription('Type principal').setRequired(true))
       .addIntegerOption(o => o.setName('niveau').setDescription('Niveau').setRequired(true))
       .addIntegerOption(o => o.setName('prix').setDescription('Prix en $').setRequired(true))
       .addStringOption(o => o.setName('type2').setDescription('Type secondaire (optionnel)').setRequired(false))
+      .addStringOption(o => o.setName('sexe').setDescription('Sexe du Pokémon').setRequired(false)
+        .addChoices(
+          { name: '♂', value: '♂' },
+          { name: '♀', value: '♀' },
+          { name: '⚲', value: '⚲' },
+        ))
       .addStringOption(o => o.setName('nature').setDescription('Nature').setRequired(false))
       .addStringOption(o => o.setName('talent').setDescription('Talent').setRequired(false))
       .addStringOption(o => o.setName('iv').setDescription('IV format PV/Att/Déf/AtSp/DéfSp/Vit').setRequired(false))
+      .addStringOption(o => o.setName('sprite').setDescription('Chemin du sprite (ex: assets/pokemon/bulbasaur.png)').setRequired(false))
       .addBooleanOption(o => o.setName('shiny').setDescription('Shiny ?').setRequired(false))
       .addBooleanOption(o => o.setName('legendaire').setDescription('Légendaire ?').setRequired(false))
       .addBooleanOption(o => o.setName('tc').setDescription('Talent Caché ?').setRequired(false))
@@ -55,27 +63,31 @@ module.exports = {
 
     if (sub === 'add') {
       const nom = interaction.options.getString('nom');
+      const dex = interaction.options.getInteger('dex');
       const type1 = interaction.options.getString('type1');
       const type2 = interaction.options.getString('type2');
       const niveau = interaction.options.getInteger('niveau');
       const prix = interaction.options.getInteger('prix');
+      const sexe = interaction.options.getString('sexe') || '—';
       const nature = interaction.options.getString('nature') || 'Calme';
       const talent = interaction.options.getString('talent') || 'Ténacité';
       const ivDisplay = interaction.options.getString('iv') || '31/31/31/31/31/31';
+      const sprite = interaction.options.getString('sprite') || null;
       const shiny = interaction.options.getBoolean('shiny') || false;
       const legendary = interaction.options.getBoolean('legendaire') || false;
       const tc = interaction.options.getBoolean('tc') || false;
 
       const newMon = {
         id: mons.length ? Math.max(...mons.map(m => m.id)) + 1 : 0,
+        dex,
         name: nom,
         types: type2 ? [type1, type2] : [type1],
         level: niveau,
-        sex: '—',
+        sex: sexe,
         nature,
         talent,
         tc,
-        sprite: null,
+        sprite,
         iv: ivDisplay.split('/').reduce((a, b) => a + parseInt(b, 10), 0),
         ivDisplay,
         ev: '252/252/4',
