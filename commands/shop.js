@@ -2,8 +2,9 @@ const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { readJsonFileOrCreate, writeJsonFile } = require('../utils/github');
 const { isAuthorized } = require('../utils/permissions');
 
+// Le PokeShop n'est pas géré ici : il utilise déjà data/pokemon.json via la commande /pokemon,
+// exactement comme la Pension. Ce fichier ne gère que l'ItemShop et le ServiceShop.
 const SHOP_PATHS = {
-  pokeshop: 'data/pokeshop.json',
   itemshop: 'data/itemshop.json',
   serviceshop: 'data/serviceshop.json',
 };
@@ -11,38 +12,36 @@ const SHOP_PATHS = {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('shop')
-    .setDescription('Gérer le PokeShop, ItemShop ou ServiceShop')
+    .setDescription("Gérer l'ItemShop ou le ServiceShop (pour la Pension/PokeShop, utilise /pokemon)")
     .addSubcommand(sub => sub
       .setName('add')
-      .setDescription('Ajouter un article à une boutique')
+      .setDescription('Ajouter un article/service')
       .addStringOption(o => o.setName('boutique').setDescription('Quelle boutique').setRequired(true)
         .addChoices(
-          { name: 'PokeShop', value: 'pokeshop' },
           { name: 'ItemShop', value: 'itemshop' },
           { name: 'ServiceShop', value: 'serviceshop' },
         ))
       .addStringOption(o => o.setName('nom').setDescription("Nom de l'article/service").setRequired(true))
-      .addIntegerOption(o => o.setName('prix').setDescription('Prix en $').setRequired(true))
+      .addStringOption(o => o.setName('prix').setDescription('Prix affiché, ex. "45$", "Dès 100$", "50$/h", "Offert"').setRequired(true))
       .addStringOption(o => o.setName('description').setDescription('Description courte').setRequired(false))
-      .addStringOption(o => o.setName('stock').setDescription('Stock disponible (ex. "5" ou "illimité")').setRequired(false))
+      .addStringOption(o => o.setName('icone').setDescription('Un seul emoji affiché sur la carte').setRequired(false))
+      .addStringOption(o => o.setName('badge').setDescription('Ex. "Disponible", "Sur devis", "Réservé Titans", "Membres"').setRequired(false))
     )
     .addSubcommand(sub => sub
       .setName('remove')
-      .setDescription("Retirer un article d'une boutique")
+      .setDescription("Retirer un article/service")
       .addStringOption(o => o.setName('boutique').setDescription('Quelle boutique').setRequired(true)
         .addChoices(
-          { name: 'PokeShop', value: 'pokeshop' },
           { name: 'ItemShop', value: 'itemshop' },
           { name: 'ServiceShop', value: 'serviceshop' },
         ))
-      .addStringOption(o => o.setName('nom').setDescription('Nom exact de l\'article').setRequired(true))
+      .addStringOption(o => o.setName('nom').setDescription('Nom exact de l\'article/service').setRequired(true))
     )
     .addSubcommand(sub => sub
       .setName('list')
       .setDescription("Voir le contenu d'une boutique")
       .addStringOption(o => o.setName('boutique').setDescription('Quelle boutique').setRequired(true)
         .addChoices(
-          { name: 'PokeShop', value: 'pokeshop' },
           { name: 'ItemShop', value: 'itemshop' },
           { name: 'ServiceShop', value: 'serviceshop' },
         ))
@@ -60,21 +59,22 @@ module.exports = {
 
     if (sub === 'add') {
       const nom = interaction.options.getString('nom');
-      const prix = interaction.options.getInteger('prix');
+      const prix = interaction.options.getString('prix');
       const description = interaction.options.getString('description') || '';
-      const stock = interaction.options.getString('stock') || 'illimité';
+      const icone = interaction.options.getString('icone') || (boutique === 'itemshop' ? '🛒' : '🛠️');
+      const badge = interaction.options.getString('badge') || 'Disponible';
       const newItem = {
         id: items.length ? Math.max(...items.map(i => i.id)) + 1 : 0,
-        nom, prix, description, stock,
+        icone, nom, description, prix, badge,
       };
       items.push(newItem);
       await writeJsonFile(path, items, sha, `Ajout de "${nom}" dans ${boutique} via le bot Discord (par ${interaction.user.tag})`);
       const embed = new EmbedBuilder()
-        .setTitle(`✅ "${nom}" ajouté au ${boutique}`)
+        .setTitle(`${icone} "${nom}" ajouté au ${boutique}`)
         .setColor(0xC9A66B)
         .addFields(
-          { name: 'Prix', value: `${prix}$`, inline: true },
-          { name: 'Stock', value: stock, inline: true },
+          { name: 'Prix', value: prix, inline: true },
+          { name: 'Statut', value: badge, inline: true },
         );
       if (description) embed.setDescription(description);
       return interaction.editReply({ embeds: [embed] });
@@ -93,7 +93,7 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setTitle(`🛒 Contenu de ${boutique}`)
         .setColor(0xC9A66B)
-        .setDescription(items.map(i => `**${i.nom}** — ${i.prix}$ — stock: ${i.stock}`).join('\n') || 'Boutique vide.');
+        .setDescription(items.map(i => `${i.icone || '•'} **${i.nom}** — ${i.prix} — ${i.badge}`).join('\n') || 'Boutique vide.');
       return interaction.editReply({ embeds: [embed] });
     }
   },
